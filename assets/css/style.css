@@ -1,0 +1,151 @@
+/* CSS Document */
+
+body {
+	background: rgb(215,217,214);
+	color: #000;
+    font-family: "lucida grande", "lucida sans unicode", lucida, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 300;
+	font-size:16px;
+}
+
+/* Headings */
+
+h1 {
+  	font-size:30pt;
+}
+
+h2 {
+	font-size:18pt;
+}
+
+h3 {
+  	font-size:14pt;
+}
+
+
+/* Hyperlinks */
+
+img.teaser {
+	border: 1px solid #333;
+}
+
+
+a:active {
+  color: red;
+  text-decoration: underline;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+
+/* Main page container */
+
+.container {
+	width: 1024px;
+	/* min-height: 1000px; */
+	/* margin: 0 auto; */ /* top and bottom, right and left */
+	/* border: 1px solid #000;*/ */
+	text-align: left;
+	padding: 1em 1em 1em 1em; /* top, right, bottom, left */
+	/* color: #000; */
+	/* background: #fff; */
+}
+
+/* Title and menu */
+
+.title{
+	font-size: 18pt;
+	font-weight:bold;
+	margin: 1px;
+}
+
+.menubar {
+  white-space: nowrap;
+  margin-bottom: 0em;
+  text-align:center;
+  font-size:16px;
+}
+
+
+/* Announcements */
+
+.announce_date {
+	font-size: .875em;
+	font-style: italic;
+}
+.announce {
+	font-size: inherit;
+}
+.schedule_week {
+	font-weight: bold;
+	background-color: #DDD;
+}
+
+
+/* Schedule */
+
+table.schedule {
+	border-width: 1px;
+	border-spacing: 2px;
+	border-style: none;
+	border-color: #000;
+	border-collapse: collapse;
+	/* background-color: white; */
+}
+.schedule td {
+	padding: 8px;
+}
+
+
+
+/* Notes */
+
+table.notes {
+	border: none;
+	border-collapse: collapse;
+}
+
+.notes td {
+	border-bottom: 1px solid;
+	padding-bottom: 5px;
+	padding-top: 5px;
+}
+
+
+/* Problem sets */
+
+table.psets {
+/*	border: none;*/
+	border-collapse: collapse;
+}
+
+.psets td {
+	border-bottom: 1px solid;
+	padding-bottom: 5px;
+	padding-top: 5px;
+}
+
+
+.acknowledgement
+{
+	font-size: .875em;
+}
+
+.code {
+	font-family: "Courier New", Courier, monospace
+}
+
+.instructorphoto img {
+  height: 130px;
+  border-radius: 130px;
+  margin-bottom: 10px;
+}
+.instructor {
+  display: inline-block;
+  width: 155px;
+  text-align: left;
+  margin-right: 5px;
+	margin-bottom: 10px;
+}
