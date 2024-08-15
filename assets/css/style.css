@@ -1,7 +1,8 @@
 /* CSS Document */
 
 body {
-	background: rgb(215,217,214);
+	/* background: rgb(215,217,214); */
+	background: rgb(255,255,255);
 	color: #000;
     font-family: "lucida grande", "lucida sans unicode", lucida, "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 300;
@@ -26,7 +27,7 @@ h3 {
 /* Hyperlinks */
 
 img.teaser {
-	border: 1px solid #333;
+	/* border: 1px solid #333; */
 }
 
 
