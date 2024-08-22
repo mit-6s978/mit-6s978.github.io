@@ -1,0 +1,179 @@
+import pyvista as pv
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+import trimesh
+from scipy.spatial.transform import Rotation as R
+from tqdm import tqdm
+
+
+res = 512
+step = 14
+
+data_pts = [
+    [100, 100],
+    [150, 300],
+    [res - 100, res - 200]
+]
+data_pts = np.array(data_pts, dtype=np.float64)
+
+sigmas = [0.11, 0.11, 0.11]
+bld_w = [20, 15, 30]
+
+def mixed_gaussian_2d(x, y, data_pts, sigmas, bld_w):
+    x = x.unsqueeze(0)
+    y = y.unsqueeze(0)
+    
+    data_pts = torch.tensor(data_pts)
+    sigmas = torch.tensor(sigmas)
+    bld_w = torch.tensor(bld_w)
+    
+    diff_x = (x / res - data_pts[:, 0].view(-1, 1, 1) / res)**2
+    diff_y = (y / res - data_pts[:, 1].view(-1, 1, 1) / res)**2
+    dist_sq = diff_x + diff_y
+
+    # Calculate the Gaussian values
+    gaussians = torch.exp(-dist_sq / (2 * sigmas.view(-1, 1, 1)**2)) / (2 * np.pi * sigmas.view(-1, 1, 1)**2)
+    
+    weighted_gaussians = bld_w.view(-1, 1, 1) * gaussians
+
+    mixed = torch.sum(weighted_gaussians, dim=0)
+    return mixed
+
+x = np.linspace(0, res-1, res)
+y = np.linspace(0, res-1, res)
+x, y = np.meshgrid(x, y)
+
+x_param = torch.tensor(x, dtype=torch.float32, requires_grad=True)
+y_param = torch.tensor(y, dtype=torch.float32, requires_grad=True)
+pdfs = mixed_gaussian_2d(x_param, y_param, data_pts, sigmas, bld_w)
+
+pdfs_norm = pdfs.clone().detach().numpy()
+
+log_pdfs = torch.log(pdfs)
+torch.sum(log_pdfs).backward()
+# Generate the surface landscape
+points_x, points_y, points_z = x.flatten(), y.flatten(), pdfs_norm.flatten()
+points = np.c_[points_x, points_y, points_z]
+
+faces = []
+for i in range(res - 1):
+    for j in range(res - 1):
+        idx = i * res + j
+        # Define two triangles for each square in the grid
+        faces.append([idx, idx + 1, idx + res])
+        faces.append([idx + 1, idx + res + 1, idx + res])
+
+faces = np.array(faces)  # Ensure faces is a 2D array
+
+mesh = trimesh.Trimesh(vertices=points, faces=faces)
+
+gradient_x = x_param.grad.numpy()
+gradient_y = y_param.grad.numpy()
+gradients = np.stack([gradient_x, gradient_y, np.zeros_like(gradient_x)], axis=-1)
+gradients = gradients.reshape(-1, 3)
+
+normals = mesh.vertex_normals
+rotated_vectors = np.zeros_like(gradients)
+for i in tqdm(range(len(gradients))):
+    # Create a rotation that aligns the z-axis with the normal
+    normal = normals[i]
+    if np.allclose(normal, [0, 0, 1]):
+        # If the normal is already pointing in the z direction, no rotation is needed
+        rotated_vectors[i] = gradients[i]
+    else:
+        # Find the rotation axis and angle
+        rotation, _ = R.align_vectors([normal], [[0, 0, 1]])
+        rotated_vectors[i] = rotation.apply(gradients[i])
+
+# Scale vectors for visualization
+vectors = rotated_vectors * 1200
+
+faces_pv = np.hstack([[3, face[0], face[1], face[2]] for face in faces])
+surf = pv.PolyData(mesh.vertices, faces=faces_pv)
+
+# Visualize the 2D Gaussian as a surface landscape
+p = pv.Plotter(window_size=(3840, 2160), off_screen=True)
+# p = pv.Plotter(window_size=(3840, 2160))
+
+# colors = [(1, 0, 0), (1, 1, 1)]  # Red to White
+# n_bins = 256  # Number of bins in the colormap
+# custom_cmap = mcolors.LinearSegmentedColormap.from_list('red_white', colors[::-1], N=n_bins)
+custom_cmap = plt.get_cmap('Reds')
+
+# Sample points based on the PDF values
+pdfs_flat = pdfs_norm.flatten()
+pdfs_normalized = pdfs_flat / np.sum(pdfs_flat)  # Normalize PDF values to use as probabilities
+
+x_center = res // 2
+y_center = res // 2
+distances = np.sqrt((x - x_center)**2 + (y - y_center)**2)
+
+# Normalize distances to range [0, 1]
+normalized_distances = distances / distances.max()
+
+# # Calculate opacity based on distance (fade out towards the edges)
+# k = 90  # Steepness of the curve
+# x0 = 0.7  # Midpoint of the sigmoid curve
+# opacities = 1 - 1 / (1 + np.exp(-k * (normalized_distances.flatten() - x0)))
+# opacities[pdfs_flat > 0.01 * (np.max(pdfs_flat) - np.min(pdfs_flat)) + np.min(pdfs_flat)] = 1.
+
+# # Get the scalar value at the [0, 0] vertex
+# scalar_value = pdfs_norm[res - 1, 0]
+
+# # Normalize the scalar value to [0, 1] based on the min and max of the scalar field
+# normalized_scalar = (scalar_value - pdfs_norm.min()) / (pdfs_norm.max() - pdfs_norm.min())
+# background_color = custom_cmap(normalized_scalar)
+
+# p.background_color = background_color 
+
+p.add_mesh(surf, scalars=pdfs_norm.flatten(), opacity=1.0, cmap=custom_cmap, show_vertices=False, show_scalar_bar=False)
+# p.add_mesh(surf, scalars=pdfs_norm.flatten(), opacity=opacities, cmap=custom_cmap, show_scalar_bar=False)
+
+
+# Create a grid with higher density in high-probability areas
+x_subgrid = np.arange(0, res, step)
+y_subgrid = np.arange(0, res, step)
+x_subgrid, y_subgrid = np.meshgrid(x_subgrid, y_subgrid)
+grid_indices = np.ravel_multi_index((x_subgrid.flatten(), y_subgrid.flatten()), (res, res))
+
+
+x_subgrid = np.arange(0, res, step * 3)
+y_subgrid = np.arange(0, res, step * 3)
+x_subgrid, y_subgrid = np.meshgrid(x_subgrid, y_subgrid)
+grid_indices_sparse = np.ravel_multi_index((x_subgrid.flatten(), y_subgrid.flatten()), (res, res))
+
+# Sample the grid indices weighted by the PDF
+prob_threshold = 0.01  # Set a probability threshold to control density
+pts_idx = grid_indices[pdfs_flat[grid_indices] > prob_threshold * pdfs_flat.max()]
+pts_idx_sparse = grid_indices_sparse[pdfs_flat[grid_indices_sparse] < prob_threshold * pdfs_flat.max()]
+vectors_subgrid = vectors[pts_idx]
+vector_subgrid_sparse = vectors[pts_idx_sparse] * 0.6
+vectors_subgrid = np.concatenate([vectors_subgrid, vector_subgrid_sparse])  
+pts_idx = np.concatenate([pts_idx, pts_idx_sparse])
+# vectors_subgrid = vectors[pts_idx]
+points_subgrid = np.c_[points_x[pts_idx], points_y[pts_idx], points_z[pts_idx]]
+
+arrow_mesh = pv.PolyData()
+arrow_mesh.points = points_subgrid #+ normals[pts_idx] * 10.0
+arrow_mesh["vectors"] = vectors_subgrid
+arrows = arrow_mesh.glyph(orient="vectors", scale=True, factor=0.4)
+p.add_mesh(arrows, opacity=1.0, color='black')# scalars="colors" , cmap='plasma')
+
+# sphere_radius = 3 
+# spheres = [pv.Sphere(radius=sphere_radius, center=[pt[0], pt[1], pdfs_norm[int(pt[0]), int(pt[1])]]) for pt, s in zip(data_pts, bld_w)]
+
+
+def print_camera_position():
+    print("Camera Position:", p.camera_position)
+p.add_key_event('p', print_camera_position)
+
+p.camera.SetPosition((661.8535538055413, -1806.156768380909, 715.2138161697264))  # Set the camera position
+p.set_focus((255.08639392256737, 255.2218362390995, 130.32052181386567),)          # Set the focal point
+p.set_viewup((-0.056021659395560586, 0.2622886316480881, 0.96336195035238))              # Set the view up vector
+p.screenshot("teaser.png", window_size=(3840, 2160))
+
+# p.show_axes()
+# p.show()
