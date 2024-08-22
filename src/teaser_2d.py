@@ -50,12 +50,12 @@ x_param = torch.tensor(x, dtype=torch.float32, requires_grad=True)
 y_param = torch.tensor(y, dtype=torch.float32, requires_grad=True)
 pdfs = mixed_gaussian_2d(x_param, y_param, data_pts, sigmas, bld_w)
 
-pdfs_norm = pdfs.clone().detach().numpy()
 
 log_pdfs = torch.log(pdfs)
 torch.sum(log_pdfs).backward()
 # Generate the surface landscape
-points_x, points_y, points_z = x.flatten(), y.flatten(), pdfs_norm.flatten()
+pdfs = pdfs.clone().detach().numpy()
+points_x, points_y, points_z = x.flatten(), y.flatten(), pdfs.flatten()
 points = np.c_[points_x, points_y, points_z]
 
 faces = []
@@ -75,6 +75,7 @@ gradient_y = y_param.grad.numpy()
 gradients = np.stack([gradient_x, gradient_y, np.zeros_like(gradient_x)], axis=-1)
 gradients = gradients.reshape(-1, 3)
 
+
 normals = mesh.vertex_normals
 rotated_vectors = np.zeros_like(gradients)
 for i in tqdm(range(len(gradients))):
@@ -88,14 +89,13 @@ for i in tqdm(range(len(gradients))):
         rotation, _ = R.align_vectors([normal], [[0, 0, 1]])
         rotated_vectors[i] = rotation.apply(gradients[i])
 
-# Scale vectors for visualization
+# # Scale vectors for visualization
 vectors = rotated_vectors * 1200
 
 faces_pv = np.hstack([[3, face[0], face[1], face[2]] for face in faces])
 surf = pv.PolyData(mesh.vertices, faces=faces_pv)
 
-# Visualize the 2D Gaussian as a surface landscape
-p = pv.Plotter(window_size=(3840, 2160), off_screen=True)
+p = pv.Plotter(window_size=(3840, 3840), off_screen=True)
 # p = pv.Plotter(window_size=(3840, 2160))
 
 # colors = [(1, 0, 0), (1, 1, 1)]  # Red to White
@@ -103,37 +103,27 @@ p = pv.Plotter(window_size=(3840, 2160), off_screen=True)
 # custom_cmap = mcolors.LinearSegmentedColormap.from_list('red_white', colors[::-1], N=n_bins)
 custom_cmap = plt.get_cmap('Reds')
 
-# Sample points based on the PDF values
-pdfs_flat = pdfs_norm.flatten()
-pdfs_normalized = pdfs_flat / np.sum(pdfs_flat)  # Normalize PDF values to use as probabilities
-
-x_center = res // 2
-y_center = res // 2
-distances = np.sqrt((x - x_center)**2 + (y - y_center)**2)
-
-# Normalize distances to range [0, 1]
-normalized_distances = distances / distances.max()
+##############
+# x_center = res // 2
+# y_center = res // 2
+# distances = np.sqrt((x - x_center)**2 + (y - y_center)**2)
+# normalized_distances = distances / distances.max()
 
 # # Calculate opacity based on distance (fade out towards the edges)
 # k = 90  # Steepness of the curve
 # x0 = 0.7  # Midpoint of the sigmoid curve
 # opacities = 1 - 1 / (1 + np.exp(-k * (normalized_distances.flatten() - x0)))
 # opacities[pdfs_flat > 0.01 * (np.max(pdfs_flat) - np.min(pdfs_flat)) + np.min(pdfs_flat)] = 1.
-
-# # Get the scalar value at the [0, 0] vertex
+###########
 # scalar_value = pdfs_norm[res - 1, 0]
-
-# # Normalize the scalar value to [0, 1] based on the min and max of the scalar field
 # normalized_scalar = (scalar_value - pdfs_norm.min()) / (pdfs_norm.max() - pdfs_norm.min())
 # background_color = custom_cmap(normalized_scalar)
-
 # p.background_color = background_color 
+##############
 
-p.add_mesh(surf, scalars=pdfs_norm.flatten(), opacity=1.0, cmap=custom_cmap, show_vertices=False, show_scalar_bar=False)
+p.add_mesh(surf, scalars=pdfs.flatten(), opacity=1.0, cmap=custom_cmap, show_vertices=False, show_scalar_bar=False)
 # p.add_mesh(surf, scalars=pdfs_norm.flatten(), opacity=opacities, cmap=custom_cmap, show_scalar_bar=False)
 
-
-# Create a grid with higher density in high-probability areas
 x_subgrid = np.arange(0, res, step)
 y_subgrid = np.arange(0, res, step)
 x_subgrid, y_subgrid = np.meshgrid(x_subgrid, y_subgrid)
@@ -145,8 +135,8 @@ y_subgrid = np.arange(0, res, step * 3)
 x_subgrid, y_subgrid = np.meshgrid(x_subgrid, y_subgrid)
 grid_indices_sparse = np.ravel_multi_index((x_subgrid.flatten(), y_subgrid.flatten()), (res, res))
 
-# Sample the grid indices weighted by the PDF
-prob_threshold = 0.01  # Set a probability threshold to control density
+prob_threshold = 0.01 
+pdfs_flat = pdfs.flatten()
 pts_idx = grid_indices[pdfs_flat[grid_indices] > prob_threshold * pdfs_flat.max()]
 pts_idx_sparse = grid_indices_sparse[pdfs_flat[grid_indices_sparse] < prob_threshold * pdfs_flat.max()]
 vectors_subgrid = vectors[pts_idx]
@@ -165,15 +155,14 @@ p.add_mesh(arrows, opacity=1.0, color='black')# scalars="colors" , cmap='plasma'
 # sphere_radius = 3 
 # spheres = [pv.Sphere(radius=sphere_radius, center=[pt[0], pt[1], pdfs_norm[int(pt[0]), int(pt[1])]]) for pt, s in zip(data_pts, bld_w)]
 
-
 def print_camera_position():
     print("Camera Position:", p.camera_position)
 p.add_key_event('p', print_camera_position)
 
-p.camera.SetPosition((661.8535538055413, -1806.156768380909, 715.2138161697264))  # Set the camera position
-p.set_focus((255.08639392256737, 255.2218362390995, 130.32052181386567),)          # Set the focal point
-p.set_viewup((-0.056021659395560586, 0.2622886316480881, 0.96336195035238))              # Set the view up vector
-p.screenshot("teaser.png", window_size=(3840, 2160))
+p.camera.SetPosition((915.0402480352863, -847.0574060853203, 499.704460166908))
+p.set_focus((320.0705590005367, 278.29074125860194, 159.10115200705894),) 
+p.set_viewup((-0.11450332210404066, 0.23183429547891837, 0.965992675265673))
+p.screenshot("teaser.png", window_size=(3840, 3840))
 
 # p.show_axes()
 # p.show()
