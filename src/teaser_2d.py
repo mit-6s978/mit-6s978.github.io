@@ -20,7 +20,7 @@ data_pts = [
 data_pts = np.array(data_pts, dtype=np.float64)
 
 sigmas = [0.11, 0.11, 0.11]
-bld_w = [20, 15, 30]
+bld_w = [20, 15, 22]
 
 def mixed_gaussian_2d(x, y, data_pts, sigmas, bld_w):
     x = x.unsqueeze(0)
@@ -95,8 +95,8 @@ vectors = rotated_vectors * 1200
 faces_pv = np.hstack([[3, face[0], face[1], face[2]] for face in faces])
 surf = pv.PolyData(mesh.vertices, faces=faces_pv)
 
-p = pv.Plotter(window_size=(3840, 3840), off_screen=True)
-# p = pv.Plotter(window_size=(3840, 2160))
+# p = pv.Plotter(window_size=(3840, 3840), off_screen=True)
+p = pv.Plotter(window_size=(3840, 2160))
 
 # colors = [(1, 0, 0), (1, 1, 1)]  # Red to White
 # n_bins = 256  # Number of bins in the colormap
@@ -135,21 +135,23 @@ y_subgrid = np.arange(0, res, step * 3)
 x_subgrid, y_subgrid = np.meshgrid(x_subgrid, y_subgrid)
 grid_indices_sparse = np.ravel_multi_index((x_subgrid.flatten(), y_subgrid.flatten()), (res, res))
 
-prob_threshold = 0.01 
+prob_threshold = 0.00
 pdfs_flat = pdfs.flatten()
 pts_idx = grid_indices[pdfs_flat[grid_indices] > prob_threshold * pdfs_flat.max()]
 pts_idx_sparse = grid_indices_sparse[pdfs_flat[grid_indices_sparse] < prob_threshold * pdfs_flat.max()]
 vectors_subgrid = vectors[pts_idx]
-vector_subgrid_sparse = vectors[pts_idx_sparse] * 0.6
-vectors_subgrid = np.concatenate([vectors_subgrid, vector_subgrid_sparse])  
+# vector_subgrid_sparse = vectors[pts_idx_sparse] * 0.6
+# vectors_subgrid = np.concatenate([vectors_subgrid, vector_subgrid_sparse])  
 pts_idx = np.concatenate([pts_idx, pts_idx_sparse])
 # vectors_subgrid = vectors[pts_idx]
-points_subgrid = np.c_[points_x[pts_idx], points_y[pts_idx], points_z[pts_idx]]
+points_subgrid = np.c_[points_x[pts_idx], points_y[pts_idx], points_z[pts_idx] + 1]
 
 arrow_mesh = pv.PolyData()
 arrow_mesh.points = points_subgrid #+ normals[pts_idx] * 10.0
 arrow_mesh["vectors"] = vectors_subgrid
-arrows = arrow_mesh.glyph(orient="vectors", scale=True, factor=0.4)
+length = np.linalg.norm(vectors_subgrid, axis=1).mean() * 0.25
+# arrows = arrow_mesh.glyph(orient="vectors", scale=True, factor=0.4)
+arrows = arrow_mesh.glyph(orient="vectors", scale=False, factor=length)
 p.add_mesh(arrows, opacity=1.0, color='black')# scalars="colors" , cmap='plasma')
 
 # sphere_radius = 3 
@@ -159,10 +161,29 @@ def print_camera_position():
     print("Camera Position:", p.camera_position)
 p.add_key_event('p', print_camera_position)
 
-p.camera.SetPosition((915.0402480352863, -847.0574060853203, 499.704460166908))
-p.set_focus((320.0705590005367, 278.29074125860194, 159.10115200705894),) 
-p.set_viewup((-0.11450332210404066, 0.23183429547891837, 0.965992675265673))
-p.screenshot("teaser.png", window_size=(3840, 3840))
+# p.camera.SetPosition((915.0402480352863, -847.0574060853203, 499.704460166908))
+# p.set_focus((320.0705590005367, 278.29074125860194, 159.10115200705894),) 
+# p.set_viewup((-0.11450332210404066, 0.23183429547891837, 0.965992675265673))
+# p.screenshot("teaser.png", window_size=(3840, 3840))
 
-# p.show_axes()
-# p.show()
+# position = (1178.539021773769, -849.4717850960942, 626.3088375426138)
+# focus = (415.45324016943596, 353.087393955779, 136.06445871394635)
+# viewup = (-0.18450929518179715, 0.2683620997262891, 0.9454830000703416)
+position = (1091.219566642046, 1568.0730874326089, 575.36601570934)
+focus = (207.11267848424657, 403.5471649479393, 198.16112876486795)
+viewup = (-0.13432903306272603, -0.21159201226385202, 0.9680829154687973)
+p.camera.SetPosition(position)
+p.set_focus(focus) 
+p.set_viewup(viewup) 
+
+
+p.show_axes()
+p.show()
+
+# After closing the window, print the camera settings
+camera = p.camera
+print(f"position = {p.camera_position[0]}")
+print(f"focus = {p.camera_position[1]}")
+print(f"viewup = {p.camera_position[2]}")
+
+p.screenshot("teaser.png")
