@@ -3,8 +3,8 @@
 body {
 	/* background: rgb(215,217,214); */
 	background: rgb(255,255,255);
-	color: #000;
-    font-family: "lucida grande", "lucida sans unicode", lucida, "Helvetica Neue", Helvetica, Arial, sans-serif;
+	color: #444444;
+    font-family: 'Arial', serif;
     font-weight: 300;
 	font-size:16px;
 }
@@ -17,6 +17,7 @@ h1 {
 
 h2 {
 	font-size:18pt;
+	font-weight: bold;
 }
 
 h3 {
@@ -47,7 +48,7 @@ a:hover {
 	width: 1024px;
 	/* min-height: 1000px; */
 	/* margin: 0 auto; */ /* top and bottom, right and left */
-	/* border: 1px solid #000;*/ */
+	/* border: 1px solid #000;*/
 	text-align: left;
 	padding: 1em 1em 1em 1em; /* top, right, bottom, left */
 	/* color: #000; */
@@ -57,7 +58,7 @@ a:hover {
 /* Title and menu */
 
 .title{
-	font-size: 18pt;
+	font-size: 22pt;
 	font-weight:bold;
 	margin: 1px;
 }
