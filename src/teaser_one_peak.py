@@ -12,22 +12,22 @@ from tqdm import tqdm
 res = 512
 step = 14
 
-# data_pts = [
-#     [256, 256],
-# ]
-# sigmas = [0.2,]
-# bld_w = [75,]
-
 data_pts = [
-    [100, 100],
-    [150, 300],
-    [res - 100, res - 200]
+    [256, 256],
 ]
+sigmas = [0.2,]
+bld_w = [75,]
+
+# data_pts = [
+#     [100, 100],
+#     [150, 300],
+#     [res - 100, res - 200]
+# ]
 # sigmas = [0.11, 0.11, 0.11]
 # bld_w = [20, 15, 22]
 
-sigmas = [0.11, 0.11, 0.11]
-bld_w = [24, 12, 18]
+# sigmas = [0.11, 0.11, 0.11]
+# bld_w = [24, 12, 18]
 
 
 data_pts = np.array(data_pts, dtype=np.float64)
@@ -112,7 +112,8 @@ p = pv.Plotter(window_size=(3840, 2160))
 # n_bins = 256  # Number of bins in the colormap
 # custom_cmap = mcolors.LinearSegmentedColormap.from_list('red_white', colors[::-1], N=n_bins)
 # custom_cmap = plt.get_cmap('Reds')
-custom_cmap = plt.get_cmap('BuPu')
+# custom_cmap = plt.get_cmap('BuPu')
+custom_cmap = plt.get_cmap('GnBu')
 
 ##############
 # x_center = res // 2
@@ -197,4 +198,4 @@ print(f"position = {p.camera_position[0]}")
 print(f"focus = {p.camera_position[1]}")
 print(f"viewup = {p.camera_position[2]}")
 
-p.screenshot("teaser.png")
+# p.screenshot("teaser.png")
