@@ -12,11 +12,25 @@ from tqdm import tqdm
 res = 512
 step = 14
 
+# data_pts = [
+#     [256, 256],
+# ]
+# data_pts = [
+#     [320, 256],
+# ]
+# sigmas = [0.2,]
+# bld_w = [75,]
+
+r = 75
+s = 2 * np.pi / 360
 data_pts = [
-    [256, 256],
+    [256+r * np.sin(120 * s), 256+r * np.cos(120 * s)],
+    [256+r * np.sin(240 * s), 256+r * np.cos(240 * s)],
+    [256+r * np.sin(360 * s), 256+r * np.cos(360 * s)],
 ]
-sigmas = [0.2,]
-bld_w = [75,]
+sigmas = [0.1, 0.1, 0.1]
+bld_w = [15, 15, 15]
+
 
 # data_pts = [
 #     [100, 100],
