@@ -1,1 +1,0 @@
-python3 teaser_2d.py
